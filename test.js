@@ -26,11 +26,12 @@ _.each([1,2,3], log);
 
 _.each({id: 5, name: "JE", age: 27}, log);
 
-
 //_.filter
 log(_.filter([1, 2, 3, 4], val => val > 2));
 
 log(_.filter({a: 1, b: 2, c: 3, d: 4}, val => val < 3));
+
+log(_.filter([1, 2, 3, 4, 5, 6, 7, 8], () => true, 4));
 
 //_.rest
 log(_.rest([1, 2, 3]));
@@ -137,3 +138,50 @@ log(_.reduce(users, (memo, user) => {
     memo.total[group] = (memo.total[group] || 0) + user.age;
     return memo;
 }, {count: {}, total: {}}));
+
+//_.once
+const onceFunc = _.once(() => {
+    console.log("Once Call");
+    return "B";
+});
+
+log(onceFunc());
+log(onceFunc());
+
+//_.skip
+const showOnce = _.skip(() => {
+    console.log("-this message is only showed once if this function return true-");
+    return true;
+});
+
+showOnce();
+showOnce();
+
+//_.partial
+const pc = _.partial(console.log, 1);
+pc(2);
+
+pc(2, 3);
+
+const pc2 = _.partial(console.log, _, 2);
+pc2(1);
+
+pc2(1, 3);
+
+const pc3 = _.partial(console.log, _, _, 3);
+pc3(1);
+
+pc3(1, 2);
+
+pc3(1, 2, 4);
+
+const pc4 = _.partial(console.log, _, 2, _, 4);
+pc4(1, 3, 5);
+
+const pc5 = _.partial(console.log, _, 2, _, _, 5);
+pc5(1, 3, 4, 6);
+
+const add_all = _.partial(_.reduce, _, (a, b) => (a + b), 0);
+log(add_all([1, 2, 3, 4]));
+
+log(add_all([5, 2]));

@@ -13,16 +13,44 @@ const bloop = (new_data, body, stopper, is_reduce) => {
     return (data, iter_predi = _.identity, opt1) => {
         let result = new_data(data);
         let memo = is_reduce ? opt1 : undefined;
+        let limiter = is_reduce ? undefined : opt1;
         let keys = isArrayLike(data) ? null : _.keys(data);
-        
-        for(let i = 0, len = (keys || data).length; i < len; i++) {
-            const key = keys ? keys[i] : i;
-            memo = is_reduce ? iter_predi(memo, data[i], i, data) : iter_predi(data[i], i, data);
-            if(!stopper) body(memo, result, data[key], key);
-            else if(stopper(memo)) return body(memo, result, data[key], key);
+
+        if(is_reduce) { //_.reduce
+            for(let i = 0, len = (keys || data).length; i < len; i++) {
+                const key = keys ? keys[i] : i;
+                memo = iter_predi(memo, data[key], key, data);
+            }
+            return memo;
         }
+        if(stopper) {   //_.find, _.some, _.every, _.findIndex, _.findKey
+            for(let i = 0, len = (keys || data).length; i < len; i++) {
+                const key = keys ? keys[i] : i;
+                const memo = iter_predi(data[key], key, data);
+                if(stopper(memo)) return body(memo, result, data[key], key);
+            }
+        } else if(limiter) {    //_.each, _.map, _.filter, _.reject
+            for(let i = 0, len = (keys || data).length; i < len; i++) {
+                const key = keys ? keys[i] : i;
+                body(iter_predi(data[key], key, data), result, data[key]);
+                if(limiter == result.length) break;
+            }
+        } else {    //_.each, _.map, _.filter, _.reject
+            for(let i = 0, len = (keys || data).length; i < len; i++) {
+                const key = keys ? keys[i] : i;
+                body(iter_predi(data[key], key, data), result, data[key]);
+            }
+        }
+        return result;
+        // for(let i = 0, len = (keys || data).length; i < len; i++) {
+        //     const key = keys ? keys[i] : i;
+        //     memo = is_reduce ? iter_predi(memo, data[key], key, data) : iter_predi(data[key], key, data);
+        //     if(!stopper) body(memo, result, data[key], key);
+        //     else if(stopper(memo)) return body(memo, result, data[key], key);
+        //     if(limiter && limiter == result.length) break;
+        // }
         
-        return is_reduce ? memo : result;
+        // return is_reduce ? memo : result;
     }
 }
 
@@ -99,4 +127,31 @@ _.every = bloop(_.constant(true), _.constant(false), _.not);
 
 _.reduce = bloop(_.noop, _.noop, undefined, true);
 
+_.once = func => {
+    let flag, result;
+    return (...rest) => {
+        if(flag) return result;
+        flag = true;
+        return result = func.apply(null, rest); 
+    }
+}
+
+_.skip = body => {
+    let yes;
+    return (...rest) => (yes || (yes = body.apply(null, rest)));
+}
+
+_.partial = (func, ...outerRest) => {
+    return (...innerRest) => {
+        let copyRest = [...outerRest];
+        let args = [];
+        let k = 0;
+        for(let i = 0; i < copyRest.length; i++) {
+            args.push((copyRest[i] == _ ? innerRest[k++] : copyRest[i]));
+        }
+        args = args.concat(...innerRest.slice(k));
+
+        return func.apply(null, args);
+    }
+}
 module.exports = _;
